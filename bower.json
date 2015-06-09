@@ -13,5 +13,9 @@
         "gruntfile.js",
         "package.json",
         "README.md"
-    ]
+    ],
+    "dependencies": {
+        "jquery": ">=1.10.2",
+        "underscore": "~1.8.3"
+    }
 }
