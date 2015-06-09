@@ -1,6 +1,8 @@
-//tbc
+/*jslint node: true */
 
-$.fn.serializeObject = function () {
+var formfront = (function ($) {
+
+    $.fn.serializeObject = function () {
     var o = {};
     var a = this.serializeArray();
     $.each(a, function () {
@@ -14,53 +16,18 @@ $.fn.serializeObject = function () {
         }
     });
     return o;
-};
-
-function getCookie(name) {
-    var cookieValue = null;
-    if (document.cookie && document.cookie != '') {
-        var cookies = document.cookie.split(';');
-        for (var i = 0; i < cookies.length; i++) {
-            var cookie = jQuery.trim(cookies[i]);
-            // Does this cookie string begin with the name we want?
-            if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-var csrftoken = getCookie('csrftoken');
-
-function csrfSafeMethod(method) {
-    // these HTTP methods do not require CSRF protection
-    return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-}
-$.ajaxSetup({
-    beforeSend: function (xhr, settings) {
-        if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        }
-    }
-});
+    };
 
 
-var formfront = (function () {
     var my = {},
-        privateVariable = 1;
-
-    function privateMethod() {
-        // ...
-    }
-
-    var config = {};
+        config = {},
+        currentOptions = null;
 
     my.config = function (configObject) {
         config = configObject;
     };
 
-    var getItemList = function (endpoint, callback) {
+    function getItemList(endpoint, callback) {
         $.ajax({
             url: endpoint,
             type: 'GET',
@@ -68,27 +35,24 @@ var formfront = (function () {
                 callback(response);
             }
         });
-    };
+    }
 
     //returns the first object from the response.actions (so handles POST and PUT) May cause problems later.
-
-    var currentOptions = null;
-    var getOptions = function (endpoint, callback) {
+    function getOptions(endpoint, callback) {
         $.ajax({
             url: endpoint,
             type: 'OPTIONS',
             success: function (response) {
                 currentOptions = response.actions[Object.keys(response.actions)[0]];
-                for (field in currentOptions){
+                for (var field in currentOptions){
                     currentOptions[field].labelLowered = currentOptions[field].label.toLowerCase();
                 }
                 callback(currentOptions);
             }
         });
-    };
+    }
 
-    var generateListHtml = function (response) {
-
+    function generateListHtml(response) {
         var listRowHtml = "";
         for (var i = 0; i < response.length; i++) {
             var compiled = _.template(templates.listRow);
@@ -97,7 +61,7 @@ var formfront = (function () {
         var listBodyCompiled = _.template(templates.listBody);
         var listBodyHtml = listBodyCompiled({listRows: listRowHtml});
         return listBodyHtml;
-    };
+    }
 
     my.list = function (endpoint, id, callback, navigate) {
         getItemList(endpoint, function (response) {
@@ -212,33 +176,22 @@ var formfront = (function () {
 
 
     var populateFormData = function (data) {
-        //loop through fields
-        //search for data
-        //use field type to apply data correctly
-        console.log(data);
-        console.log(currentOptions);
         for (var field in currentOptions) {
 
             var foundData = findByKey(data, currentOptions[field].labelLowered);
 
             switch (currentOptions[field].type) {
                 case "string":
-                    console.log("s");
-                    console.log(foundData);
                     if ($("#field-" + currentOptions[field].labelLowered).length > 0) {
                         $($("#field-" + currentOptions[field].labelLowered).children()[0]).val(foundData);
                     }
                     break;
                 case "integer":
-                    console.log("i");
-                    console.log(foundData);
                     if ($("#field-" + currentOptions[field].labelLowered).length > 0) {
                         $($("#field-" + currentOptions[field].labelLowered).children()[0]).val(foundData);
                     }
                     break;
                 case "boolean":
-                    console.log("b");
-                    console.log(foundData);
                     if ($("#field-" + currentOptions[field].labelLowered).length > 0) {
                         $($("#field-" + currentOptions[field].labelLowered).children()[0]).prop('checked', foundData);
                     }
@@ -247,17 +200,7 @@ var formfront = (function () {
                     console.log("warning: didn't know how to apply data correctly");
                     break;
             }
-
-            //console.log(currentOptions[field].type);
-            //console.log(findByKey(data), field);
         };
-        //console.log(data);
-        /*
-        for (var key in data) {
-            if ($("#field-" + key).length > 0) {
-                $($("#field-" + key).children()[0]).val(data[key]);
-            }
-        }*/
     };
 
     var getItem = function (endpoint, callback) {
@@ -375,7 +318,7 @@ var formfront = (function () {
     };
 
     return my;
-}());
+}(jQuery));
 
 
 
