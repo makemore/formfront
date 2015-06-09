@@ -56,7 +56,7 @@ var formfront = (function () {
 
     var config = {};
 
-    my.config = function(configObject){
+    my.config = function (configObject) {
         config = configObject;
     };
 
@@ -71,24 +71,32 @@ var formfront = (function () {
     };
 
     //returns the first object from the response.actions (so handles POST and PUT) May cause problems later.
+
+    var currentOptions = null;
     var getOptions = function (endpoint, callback) {
         $.ajax({
             url: endpoint,
             type: 'OPTIONS',
             success: function (response) {
-                callback(response.actions[Object.keys(response.actions)[0]]);
+                currentOptions = response.actions[Object.keys(response.actions)[0]];
+                for (field in currentOptions){
+                    currentOptions[field].labelLowered = currentOptions[field].label.toLowerCase();
+                }
+                callback(currentOptions);
             }
         });
     };
 
     var generateListHtml = function (response) {
-        var body = "<div><button id='delete-items'>delete selected</button></div>";
-        var row = "<div><input type='checkbox' name='<%= pk %>' class='item-selected'><%= name%> <button class='item-edit' id='<%= pk %>'>edit</button></div>";
+
+        var listRowHtml = "";
         for (var i = 0; i < response.length; i++) {
-            var compiled = _.template(row);
-            body += compiled(response[i]);
+            var compiled = _.template(templates.listRow);
+            listRowHtml += compiled(response[i]);
         }
-        return body;
+        var listBodyCompiled = _.template(templates.listBody);
+        var listBodyHtml = listBodyCompiled({listRows: listRowHtml});
+        return listBodyHtml;
     };
 
     my.list = function (endpoint, id, callback, navigate) {
@@ -120,46 +128,139 @@ var formfront = (function () {
         });
     };
 
+    var getTemplate = function (filename, callback) {
+
+        var jsFileLocation = $('script[src*=formfront]').attr('src');  // the js file path
+        jsFileLocation = jsFileLocation.replace('formfront.js', '');
+        //alert(jsFileLocation);
+
+        $.ajax({
+            url: jsFileLocation + "templates/" + config.template + "/" + filename,
+            method: 'GET',
+            //async: false,
+            success: function (data) {
+                callback(data);
+            }
+        });
+    };
+
+    var templates = {};
+
+    my.setupTemplates = function () {
+        getTemplate("field-string.html", function (html) {
+            templates.stringField = html;
+            templatesLoaded = true;
+        });
+        getTemplate("field-boolean.html", function (html) {
+            templates.booleanField = html;
+            templatesLoaded = true;
+        });
+        getTemplate("form-body.html", function (html) {
+            templates.formBody = html;
+            templatesLoaded = true;
+        });
+        getTemplate("list-body.html", function (html) {
+            templates.listBody = html;
+            templatesLoaded = true;
+        });
+        getTemplate("list-row.html", function (html) {
+            templates.listRow = html;
+            templatesLoaded = true;
+        });
+
+    };
+
+    var templatesLoaded = false;
 
     var generateFormHtml = function (fields) {
-        var stringField = "<div id='field-<%= labelLowered %>'><%= label %><input type='text' name='<%= labelLowered %>' /></div>";
-
-        var body = "<style id='form-styles'></style><div id='form-errors' class='form-error'></div><form id='form-body'>";
+        var fieldHtml = "";
         for (var field in fields) {
             //console.log(response.actions.POST[field]);
             switch (fields[field].type) {
                 case "string":
-                    var compiled = _.template(stringField);
-                    fields[field].labelLowered = fields[field].label.toLowerCase();
-                    body += compiled(fields[field]);
+                    var compiled = _.template(templates.stringField);
+                    fieldHtml += compiled(fields[field]);
+                    break;
+                case "boolean":
+                    var compiled = _.template(templates.booleanField);
+                    fieldHtml += compiled(fields[field]);
                     break;
                 case "integer":
-                    var compiled = _.template(stringField);
-                    fields[field].labelLowered = fields[field].label.toLowerCase();
+                    var compiled = _.template(templates.stringField);
                     //ignore primary key field
-                    if (fields[field].labelLowered != config.primaryKeyName){
-                       body += compiled(fields[field]);
+                    if (fields[field].labelLowered != config.primaryKeyName) {
+                        fieldHtml += compiled(fields[field]);
                     }
                     break;
                 default:
-                    body += "<div>Not sure what this is</div>";
+                    fieldHtml += "<div>Not sure what this is</div>";
             }
         }
-        body += "<input type='submit' id='form-submit'></form>";
-        return body;
+        var formCompiled = _.template(templates.formBody);
+        var formHtml = formCompiled({formBody: fieldHtml});
+        return formHtml;
     };
 
-    var populateFormData = function(data){
-        for (var key in data){
-            console.log(key);
-            console.log(data[key]);
-            if ($("#field-" + key).length > 0){
-                 $($("#field-" + key).children()[0]).val(data[key]);
+
+    var findByKey = function (o, prop) {
+        for (var p in o) {
+            if (p == prop) {
+                return o[p];
             }
         }
     };
 
-    var getItem = function(endpoint, callback){
+
+    var populateFormData = function (data) {
+        //loop through fields
+        //search for data
+        //use field type to apply data correctly
+        console.log(data);
+        console.log(currentOptions);
+        for (var field in currentOptions) {
+
+            var foundData = findByKey(data, currentOptions[field].labelLowered);
+
+            switch (currentOptions[field].type) {
+                case "string":
+                    console.log("s");
+                    console.log(foundData);
+                    if ($("#field-" + currentOptions[field].labelLowered).length > 0) {
+                        $($("#field-" + currentOptions[field].labelLowered).children()[0]).val(foundData);
+                    }
+                    break;
+                case "integer":
+                    console.log("i");
+                    console.log(foundData);
+                    if ($("#field-" + currentOptions[field].labelLowered).length > 0) {
+                        $($("#field-" + currentOptions[field].labelLowered).children()[0]).val(foundData);
+                    }
+                    break;
+                case "boolean":
+                    console.log("b");
+                    console.log(foundData);
+                    if ($("#field-" + currentOptions[field].labelLowered).length > 0) {
+                        $($("#field-" + currentOptions[field].labelLowered).children()[0]).prop('checked', foundData);
+                    }
+                    break;
+                default:
+                    console.log("warning: didn't know how to apply data correctly");
+                    break;
+            }
+
+            //console.log(currentOptions[field].type);
+            //console.log(findByKey(data), field);
+        };
+        //console.log(data);
+        /*
+        for (var key in data) {
+            if ($("#field-" + key).length > 0) {
+                $($("#field-" + key).children()[0]).val(data[key]);
+            }
+        }*/
+    };
+
+    var getItem = function (endpoint, callback) {
         $.ajax({
             url: endpoint,
             type: 'GET',
@@ -170,72 +271,104 @@ var formfront = (function () {
         });
     };
 
+    var templatesReady = function (callback) {
+        if (templatesLoaded) {
+            return callback();
+        }
+        var templateInterval = setInterval(function () {
+            if (templatesLoaded) {
+                clearInterval(templateInterval);
+                callback();
+            }
+        }, 100);
+    };
+
 
     my.edit = function (endpoint, id, callback) {
-        getOptions(endpoint, function (optionsResponse) {
-            $("#" + id).append(generateFormHtml(optionsResponse));
-            getItem(endpoint, function(itemResponse){
-                populateFormData(itemResponse);
-                var styles = ".form-error{color:red;}";
-                $("#form-styles").html(styles);
 
-                $("#form-submit").on("click", function (e) {
-                e.stopPropagation();
-                e.preventDefault();
-                console.log($("#form-body").serializeObject());
-                $.ajax({
-                    url: endpoint,
-                    type: 'PUT',
-                    data: $("#form-body").serializeObject(),
-                    success: function (result) {
-                        console.log(result);
-                        callback();
-                    },
-                    error: function (response) {
-                        console.log(response);
-                        $("#form-errors").html("");
-                        for (var error in response.responseJSON) {
-                            console.log("#field-" + error);
-                            $("#field-" + error).addClass("form-error");
-                            $("#form-errors").append(error + ": " + response.responseJSON[error]);
-                            console.log(response.responseJSON[error]);
-                        }
-                    }
+        templatesReady(function () {
+            getOptions(endpoint, function (optionsResponse) {
+                $("#" + id).append(generateFormHtml(optionsResponse));
+                getItem(endpoint, function (itemResponse) {
+                    populateFormData(itemResponse);
+                    var styles = ".form-error{color:red;}";
+                    $("#form-styles").html(styles);
+
+
+                    $("#form-submit").on("click", function (e) {
+                        e.stopPropagation();
+                        e.preventDefault();
+
+                        var formData = $("#form-body").serializeObject();
+
+                        //deal with checkboxes
+                        $('input:checkbox').each(function () {
+                            formData[$(this).attr("name")] = $(this).is(':checked');
+                        });
+
+                        $.ajax({
+                            url: endpoint,
+                            type: 'PUT',
+                            data: formData,
+                            success: function (result) {
+                                console.log(result);
+                                callback();
+                            },
+                            error: function (response) {
+                                console.log(response);
+                                $("#form-errors").html("");
+                                for (var error in response.responseJSON) {
+                                    console.log("#field-" + error);
+                                    $("#field-" + error).addClass("form-error");
+                                    $("#form-errors").append(error + ": " + response.responseJSON[error]);
+                                    console.log(response.responseJSON[error]);
+                                }
+                            }
+                        });
+                    });
                 });
-            });
-
             });
         });
     };
 
     my.create = function (endpoint, id, callback) {
-        getOptions(endpoint, function (response) {
-            $("#" + id).append(generateFormHtml(response));
+        templatesReady(function () {
+            getOptions(endpoint, function (optionsResponse) {
+                $("#" + id).append(generateFormHtml(optionsResponse));
 
-            var styles = ".form-error{color:red;}";
-            $("#form-styles").html(styles);
-            $("#form-submit").on("click", function (e) {
-                e.stopPropagation();
-                e.preventDefault();
-                console.log($("#form-body").serializeObject());
-                $.ajax({
-                    url: endpoint,
-                    type: 'POST',
-                    data: $("#form-body").serializeObject(),
-                    success: function (result) {
-                        console.log(result);
-                        callback();
-                    },
-                    error: function (response) {
-                        console.log(response);
-                        $("#form-errors").html("");
-                        for (var error in response.responseJSON) {
-                            console.log("#field-" + error);
-                            $("#field-" + error).addClass("form-error");
-                            $("#form-errors").append(error + ": " + response.responseJSON[error]);
-                            console.log(response.responseJSON[error]);
+                var styles = ".form-error{color:red;}";
+                $("#form-styles").html(styles);
+                $("#form-submit").on("click", function (e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+
+
+                    var formData = $("#form-body").serializeObject();
+
+                    //deal with checkboxes
+                    $('input:checkbox').each(function () {
+                        formData[$(this).attr("name")] = $(this).is(':checked');
+                    });
+
+                    $.ajax({
+                        url: endpoint,
+                        type: 'POST',
+                        data: formData,
+                        success: function (result) {
+                            console.log(result);
+                            callback();
+                        },
+                        error: function (response) {
+                            console.log(response);
+                            $("#form-errors").html("");
+                            for (var error in response.responseJSON) {
+                                console.log("#field-" + error);
+                                $("#field-" + error).addClass("form-error");
+                                $("#form-errors").append(error + ": " + response.responseJSON[error]);
+                                console.log(response.responseJSON[error]);
+                            }
                         }
-                    }
+                    });
                 });
             });
         });
