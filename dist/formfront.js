@@ -54,6 +54,12 @@ var formfront = (function () {
         // ...
     }
 
+    var config = {};
+
+    my.config = function(configObject){
+        config = configObject;
+    };
+
     var getItemList = function (endpoint, callback) {
         $.ajax({
             url: endpoint,
@@ -127,6 +133,14 @@ var formfront = (function () {
                     fields[field].labelLowered = fields[field].label.toLowerCase();
                     body += compiled(fields[field]);
                     break;
+                case "integer":
+                    var compiled = _.template(stringField);
+                    fields[field].labelLowered = fields[field].label.toLowerCase();
+                    //ignore primary key field
+                    if (fields[field].labelLowered != config.primaryKeyName){
+                       body += compiled(fields[field]);
+                    }
+                    break;
                 default:
                     body += "<div>Not sure what this is</div>";
             }
@@ -162,8 +176,6 @@ var formfront = (function () {
             $("#" + id).append(generateFormHtml(optionsResponse));
             getItem(endpoint, function(itemResponse){
                 populateFormData(itemResponse);
-
-
                 var styles = ".form-error{color:red;}";
                 $("#form-styles").html(styles);
 
