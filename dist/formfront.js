@@ -45,7 +45,7 @@ var formfront = (function ($) {
             success: function (response) {
                 currentOptions = response.actions[Object.keys(response.actions)[0]];
                 for (var field in currentOptions){
-                    currentOptions[field].labelLowered = currentOptions[field].label.toLowerCase();
+                    currentOptions[field].labelLowered = currentOptions[field].label.toLowerCase(); //this could just be = field; ?
                 }
                 callback(currentOptions);
             }
@@ -119,6 +119,14 @@ var formfront = (function ($) {
             templates.booleanField = html;
             templatesLoaded = true;
         });
+        getTemplate("field-field-body.html", function (html) {
+            templates.fieldFieldBody = html;
+            templatesLoaded = true;
+        });
+        getTemplate("field-field-option.html", function (html) {
+            templates.fieldFieldOption = html;
+            templatesLoaded = true;
+        });
         getTemplate("form-body.html", function (html) {
             templates.formBody = html;
             templatesLoaded = true;
@@ -132,6 +140,7 @@ var formfront = (function ($) {
             templatesLoaded = true;
         });
 
+
     };
 
     var templatesLoaded = false;
@@ -139,7 +148,6 @@ var formfront = (function ($) {
     var generateFormHtml = function (fields) {
         var fieldHtml = "";
         for (var field in fields) {
-            //console.log(response.actions.POST[field]);
             switch (fields[field].type) {
                 case "string":
                     var compiled = _.template(templates.stringField);
@@ -155,6 +163,15 @@ var formfront = (function ($) {
                     if (fields[field].labelLowered != config.primaryKeyName) {
                         fieldHtml += compiled(fields[field]);
                     }
+                    break;
+                case "field":
+                    var compiledOption = _.template(templates.fieldFieldOption);
+                    var optionHtml = "";
+                    for (var i = 0; i < fields[field].choices.length; i++){
+                        optionHtml += compiledOption(fields[field].choices[i])
+                    }
+                    var compiled = _.template(templates.fieldFieldBody);
+                    fieldHtml += compiled({label:fields[field].label,name: field, options:optionHtml});
                     break;
                 default:
                     fieldHtml += "<div>Not sure what this is</div>";
@@ -197,7 +214,7 @@ var formfront = (function ($) {
                     }
                     break;
                 default:
-                    console.log("warning: didn't know how to apply data correctly");
+                    console.log("warning: didn't know how to apply data correctly to: " + field);
                     break;
             }
         };
@@ -227,6 +244,16 @@ var formfront = (function ($) {
     };
 
 
+    var getFormData = function() {
+        var formData = $("#form-body").serializeObject();
+        //deal with checkboxes
+        $('input:checkbox').each(function () {
+            formData[$(this).attr("name")] = $(this).is(':checked');
+        });
+        //deal with related fields
+        return formData;
+    };
+
     my.edit = function (endpoint, id, callback) {
 
         templatesReady(function () {
@@ -242,12 +269,7 @@ var formfront = (function ($) {
                         e.stopPropagation();
                         e.preventDefault();
 
-                        var formData = $("#form-body").serializeObject();
-
-                        //deal with checkboxes
-                        $('input:checkbox').each(function () {
-                            formData[$(this).attr("name")] = $(this).is(':checked');
-                        });
+                        var formData = getFormData();
 
                         $.ajax({
                             url: endpoint,
@@ -286,12 +308,7 @@ var formfront = (function ($) {
                     e.preventDefault();
 
 
-                    var formData = $("#form-body").serializeObject();
-
-                    //deal with checkboxes
-                    $('input:checkbox').each(function () {
-                        formData[$(this).attr("name")] = $(this).is(':checked');
-                    });
+                    var formData = getFormData();
 
                     $.ajax({
                         url: endpoint,
