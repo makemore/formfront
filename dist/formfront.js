@@ -225,6 +225,10 @@ var formfront = (function ($) {
                     case "field": //This should actually be relatedField or something like that.
                         var compiledOption = _.template(templates.fieldFieldOption);
                         var optionHtml = "";
+
+                        //added to have default option of nothing
+                        optionHtml += compiledOption({value:null, displayName:"Select " + field});
+
                         for (var i = 0; i < fields[field].choices.length; i++) {
                             optionHtml += compiledOption(fields[field].choices[i])
                         }
