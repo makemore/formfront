@@ -162,69 +162,108 @@ var formfront = (function ($) {
         var fieldHtml = "";
         var fieldBody = _.template(templates.fieldBody);
 
+        //should be a better way of doing this?
+        if (typeof(internalOptions.ignore) == "undefined"){
+            internalOptions.ignore = [];
+        }
         for (var field in fields) {
-            switch (fields[field].type) {
+            //tests to see if current field is in ignore list
+            if (internalOptions.ignore.indexOf(field) == -1) {
+                switch (fields[field].type) {
 
-                case "string":
-                    var compiled = _.template(templates.stringField);
-                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
-                    break;
+                    case "string":
+                        var compiled = _.template(templates.stringField);
+                        fieldHtml += fieldBody({
+                            field: field,
+                            data: fields[field],
+                            fieldHtml: compiled({field: field})
+                        });
+                        break;
 
-                case "text":
-                    var compiled = _.template(templates.stringField);
-                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
-                    break;
+                    case "text":
+                        var compiled = _.template(templates.stringField);
+                        fieldHtml += fieldBody({
+                            field: field,
+                            data: fields[field],
+                            fieldHtml: compiled({field: field})
+                        });
+                        break;
 
-                case "boolean":
-                    var compiled = _.template(templates.booleanField);
-                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
-                    break;
+                    case "boolean":
+                        var compiled = _.template(templates.booleanField);
+                        fieldHtml += fieldBody({
+                            field: field,
+                            data: fields[field],
+                            fieldHtml: compiled({field: field})
+                        });
+                        break;
 
-                case "integer":
-                    var compiled = _.template(templates.stringField);
-                    //ignore primary key field
-                    if (fields[field].labelLowered != config.primaryKeyName) {
-                        fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
-                    }
-                    break;
+                    case "integer":
+                        var compiled = _.template(templates.stringField);
+                        //ignore primary key field
+                        if (fields[field].labelLowered != config.primaryKeyName) {
+                            fieldHtml += fieldBody({
+                                field: field,
+                                data: fields[field],
+                                fieldHtml: compiled({field: field})
+                            });
+                        }
+                        break;
 
-                case "decimal":
-                    var compiled = _.template(templates.decimalField);
-                    //ignore primary key field
-                    if (fields[field].labelLowered != config.primaryKeyName) {
-                        fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
-                    }
-                    break;
+                    case "decimal":
+                        var compiled = _.template(templates.decimalField);
+                        //ignore primary key field
+                        if (fields[field].labelLowered != config.primaryKeyName) {
+                            fieldHtml += fieldBody({
+                                field: field,
+                                data: fields[field],
+                                fieldHtml: compiled({field: field})
+                            });
+                        }
+                        break;
 
-                case "field": //This should actually be relatedField or something like that.
-                    var compiledOption = _.template(templates.fieldFieldOption);
-                    var optionHtml = "";
-                    for (var i = 0; i < fields[field].choices.length; i++){
-                        optionHtml += compiledOption(fields[field].choices[i])
-                    }
-                    var compiled = _.template(templates.fieldFieldBody);
-                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field, options:optionHtml})});
-                    break;
+                    case "field": //This should actually be relatedField or something like that.
+                        var compiledOption = _.template(templates.fieldFieldOption);
+                        var optionHtml = "";
+                        for (var i = 0; i < fields[field].choices.length; i++) {
+                            optionHtml += compiledOption(fields[field].choices[i])
+                        }
+                        var compiled = _.template(templates.fieldFieldBody);
+                        fieldHtml += fieldBody({
+                            field: field,
+                            data: fields[field],
+                            fieldHtml: compiled({field: field, options: optionHtml})
+                        });
+                        break;
 
-                case "choice":
-                    var compiledOption = _.template(templates.fieldFieldOption);
-                    var optionHtml = "";
-                    for (var i = 0; i < fields[field].choices.length; i++){
-                        optionHtml += compiledOption(fields[field].choices[i])
-                    }
-                    var compiled = _.template(templates.fieldFieldBody);
-                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field, options:optionHtml})});
-                    break;
+                    case "choice":
+                        var compiledOption = _.template(templates.fieldFieldOption);
+                        var optionHtml = "";
+                        for (var i = 0; i < fields[field].choices.length; i++) {
+                            optionHtml += compiledOption(fields[field].choices[i])
+                        }
+                        var compiled = _.template(templates.fieldFieldBody);
+                        fieldHtml += fieldBody({
+                            field: field,
+                            data: fields[field],
+                            fieldHtml: compiled({field: field, options: optionHtml})
+                        });
+                        break;
 
-                case "date":
-                    var compiled = _.template(templates.dateField);
-                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
-                    break;
+                    case "date":
+                        var compiled = _.template(templates.dateField);
+                        fieldHtml += fieldBody({
+                            field: field,
+                            data: fields[field],
+                            fieldHtml: compiled({field: field})
+                        });
+                        break;
 
-                default:
-                    console.log("warning: didn't know how to apply data correctly to: " + field + " (type = " + fields[field].type + ")");
-                    fieldHtml += "<div>Not sure what this is</div>";
-                    break;
+                    default:
+                        console.log("warning: didn't know how to apply data correctly to: " + field + " (type = " + fields[field].type + ")");
+                        fieldHtml += "<div>Not sure what this is</div>";
+                        break;
+                }
             }
         }
         var formCompiled = _.template(templates.formBody);
@@ -242,7 +281,7 @@ var formfront = (function ($) {
     };
 
 
-    var populateFormData = function (data) {
+    my.populateFormData = function (data) {
         for (var field in currentOptions) {
             var foundData = findByKey(data, field);
             switch (currentOptions[field].type) {
@@ -280,7 +319,7 @@ var formfront = (function ($) {
                     console.log("warning: didn't know how to apply data correctly to: " + field + " which is type " + currentOptions[field].type);
                     break;
             }
-        };
+        }
     };
 
     var getItem = function (endpoint, callback) {
@@ -336,7 +375,7 @@ var formfront = (function ($) {
             getOptions(endpoint, function (optionsResponse) {
                 $("#" + id).append(generateFormHtml(optionsResponse));
                 getItem(endpoint, function (itemResponse) {
-                    populateFormData(itemResponse);
+                    my.populateFormData(itemResponse);
                     var styles = ".form-error{color:red;}";
                     $("#form-styles").html(styles);
 
@@ -377,13 +416,18 @@ var formfront = (function ($) {
         });
     };
 
-    my.create = function (endpoint, id, callback) {
+    var internalOptions = {};
+
+    my.create = function (options){ //endpoint, id, callback) {
+        internalOptions = options;
+        if (options.beforeRender) { options.beforeRender(); }
         templatesReady(function () {
-            getOptions(endpoint, function (optionsResponse) {
-                $("#" + id).append(generateFormHtml(optionsResponse));
+            getOptions(options.endpoint, function (optionsResponse) {
+                $("#" + options.id).append(generateFormHtml(optionsResponse));
 
                 var styles = ".form-error{color:red;}";
                 $("#form-styles").html(styles);
+                if (options.afterRender) { options.afterRender(); }
                 $("#form-submit").on("click", function (e) {
                     e.stopPropagation();
                     e.preventDefault();
@@ -392,13 +436,13 @@ var formfront = (function ($) {
                     var formData = getFormData();
 
                     $.ajax({
-                        url: endpoint,
+                        url: options.endpoint,
                         type: 'POST',
                         data: JSON.stringify(formData),
                         contentType: "application/json",
                         success: function (result) {
                             console.log(result);
-                            callback();
+                            options.success();
                         },
                         error: function (response) {
                             console.log(response);
