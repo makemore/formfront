@@ -115,12 +115,20 @@ var formfront = (function ($) {
             templates.stringField = html;
             templatesLoaded = true;
         });
+         getTemplate("field-decimal.html", function (html) {
+            templates.decimalField = html;
+            templatesLoaded = true;
+        });
         getTemplate("field-boolean.html", function (html) {
             templates.booleanField = html;
             templatesLoaded = true;
         });
         getTemplate("field-field-body.html", function (html) {
             templates.fieldFieldBody = html;
+            templatesLoaded = true;
+        });
+        getTemplate("field-date.html", function (html) {
+            templates.dateField = html;
             templatesLoaded = true;
         });
         getTemplate("field-field-option.html", function (html) {
@@ -149,21 +157,38 @@ var formfront = (function ($) {
         var fieldHtml = "";
         for (var field in fields) {
             switch (fields[field].type) {
+
                 case "string":
                     var compiled = _.template(templates.stringField);
-                    fieldHtml += compiled(fields[field]);
+                    fieldHtml += compiled({field:field, data:fields[field]});
                     break;
+
+                case "text":
+                    var compiled = _.template(templates.stringField);
+                    fieldHtml += compiled({field:field, data:fields[field]});
+                    break;
+
                 case "boolean":
                     var compiled = _.template(templates.booleanField);
-                    fieldHtml += compiled(fields[field]);
+                    fieldHtml += compiled({field:field, data:fields[field]});
                     break;
+
                 case "integer":
                     var compiled = _.template(templates.stringField);
                     //ignore primary key field
                     if (fields[field].labelLowered != config.primaryKeyName) {
-                        fieldHtml += compiled(fields[field]);
+                        fieldHtml += compiled({field:field, data:fields[field]});
                     }
                     break;
+
+                case "decimal":
+                    var compiled = _.template(templates.decimalField);
+                    //ignore primary key field
+                    if (fields[field].labelLowered != config.primaryKeyName) {
+                        fieldHtml += compiled({field:field, data:fields[field]});
+                    }
+                    break;
+
                 case "field":
                     var compiledOption = _.template(templates.fieldFieldOption);
                     var optionHtml = "";
@@ -171,10 +196,28 @@ var formfront = (function ($) {
                         optionHtml += compiledOption(fields[field].choices[i])
                     }
                     var compiled = _.template(templates.fieldFieldBody);
-                    fieldHtml += compiled({label:fields[field].label,name: field, options:optionHtml});
+                    fieldHtml += compiled({field:field, data:fields[field], options:optionHtml});
                     break;
+
+                case "choice":
+                    var compiledOption = _.template(templates.fieldFieldOption);
+                    var optionHtml = "";
+                    for (var i = 0; i < fields[field].choices.length; i++){
+                        optionHtml += compiledOption(fields[field].choices[i])
+                    }
+                    var compiled = _.template(templates.fieldFieldBody);
+                    fieldHtml += compiled({field:field, data:fields[field], options:optionHtml});
+                    break;
+
+                case "date":
+                    var compiled = _.template(templates.dateField);
+                    fieldHtml += compiled({field:field, data:fields[field]});
+                    break;
+
                 default:
+                    console.log("warning: didn't know how to apply data correctly to: " + field + " (type = " + fields[field].type + ")");
                     fieldHtml += "<div>Not sure what this is</div>";
+                    break;
             }
         }
         var formCompiled = _.template(templates.formBody);
@@ -313,7 +356,8 @@ var formfront = (function ($) {
                     $.ajax({
                         url: endpoint,
                         type: 'POST',
-                        data: formData,
+                        data: JSON.stringify(formData),
+                        contentType: "application/json",
                         success: function (result) {
                             console.log(result);
                             callback();
@@ -321,10 +365,14 @@ var formfront = (function ($) {
                         error: function (response) {
                             console.log(response);
                             $("#form-errors").html("");
+                            $("#form-body div").removeClass("form-error");
+                            $("#field-" + error + " > .error").text("");
+
                             for (var error in response.responseJSON) {
                                 console.log("#field-" + error);
                                 $("#field-" + error).addClass("form-error");
-                                $("#form-errors").append(error + ": " + response.responseJSON[error]);
+                                $("#field-" + error + " .error").text(response.responseJSON[error]);
+                                //$("#form-errors").append(error + ": " + response.responseJSON[error]);
                                 console.log(response.responseJSON[error]);
                             }
                         }

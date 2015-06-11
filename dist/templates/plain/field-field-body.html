@@ -1,4 +1,7 @@
-<%= label %>
-<select name="<%= name %>">
-<%= options %>
-</select>
+<div id='field-<%= field %>'>
+    <div><%= data.label %></div>
+    <div class="error"></div>
+    <select name="<%= field %>">
+        <%= options %>
+    </select>
+</div>
