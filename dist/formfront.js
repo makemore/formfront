@@ -369,17 +369,17 @@ var formfront = (function ($) {
         return formData;
     };
 
-    my.edit = function (endpoint, id, callback) {
-
+    my.edit = function (options) {
+        internalOptions = options;
+        if (options.beforeRender) { options.beforeRender(); }
         templatesReady(function () {
-            getOptions(endpoint, function (optionsResponse) {
-                $("#" + id).append(generateFormHtml(optionsResponse));
-                getItem(endpoint, function (itemResponse) {
+            getOptions(options.endpoint, function (optionsResponse) {
+                $("#" + options.id).append(generateFormHtml(optionsResponse));
+                getItem(options.endpoint, function (itemResponse) {
                     my.populateFormData(itemResponse);
                     var styles = ".form-error{color:red;}";
                     $("#form-styles").html(styles);
-
-
+                    if (options.afterRender) { options.afterRender(); }
                     $("#form-submit").on("click", function (e) {
                         e.stopPropagation();
                         e.preventDefault();
@@ -387,13 +387,13 @@ var formfront = (function ($) {
                         var formData = getFormData();
 
                         $.ajax({
-                            url: endpoint,
+                            url: options.endpoint,
                             type: 'PUT',
                             data: JSON.stringify(formData),
                             contentType: "application/json",
                             success: function (result) {
                                 console.log(result);
-                                callback();
+                                options.success();
                             },
                             error: function (response) {
                                 console.log(response);
