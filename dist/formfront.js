@@ -157,7 +157,7 @@ var formfront = (function ($) {
         var fieldHtml = "";
         for (var field in fields) {
             switch (fields[field].type) {
-
+                
                 case "string":
                     var compiled = _.template(templates.stringField);
                     fieldHtml += compiled({field:field, data:fields[field]});
