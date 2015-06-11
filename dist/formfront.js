@@ -189,7 +189,7 @@ var formfront = (function ($) {
                     }
                     break;
 
-                case "field":
+                case "field": //This should actually be relatedField or something like that.
                     var compiledOption = _.template(templates.fieldFieldOption);
                     var optionHtml = "";
                     for (var i = 0; i < fields[field].choices.length; i++){
@@ -237,27 +237,40 @@ var formfront = (function ($) {
 
     var populateFormData = function (data) {
         for (var field in currentOptions) {
-
-            var foundData = findByKey(data, currentOptions[field].labelLowered);
-
+            var foundData = findByKey(data, field);
             switch (currentOptions[field].type) {
                 case "string":
-                    if ($("#field-" + currentOptions[field].labelLowered).length > 0) {
-                        $($("#field-" + currentOptions[field].labelLowered).children()[0]).val(foundData);
+                    if ($("#field-" + field).length > 0) {
+                        $($("#field-" + field).find("input")[0]).val(foundData);
                     }
                     break;
                 case "integer":
-                    if ($("#field-" + currentOptions[field].labelLowered).length > 0) {
-                        $($("#field-" + currentOptions[field].labelLowered).children()[0]).val(foundData);
+                    if ($("#field-" + field).length > 0) {
+                        $($("#field-" + field).find("input")[0]).val(foundData);
                     }
                     break;
                 case "boolean":
-                    if ($("#field-" + currentOptions[field].labelLowered).length > 0) {
-                        $($("#field-" + currentOptions[field].labelLowered).children()[0]).prop('checked', foundData);
+                    if ($("#field-" + field).length > 0) {
+                        $($("#field-" + field).find("input").prop('checked', foundData));
+                    }
+                    break;
+                case "field":
+                    if ($("#field-" + field).length > 0) {
+                        $("#field-" + field).find("select").val(foundData);
+                    }
+                    break;
+                case "choice":
+                    if ($("#field-" + field).length > 0) {
+                        $("#field-" + field).find("select").val(foundData);
+                    }
+                    break;
+                case "date":
+                    if ($("#field-" + field).length > 0) {
+                        $("#field-" + field).find("input").val(foundData);
                     }
                     break;
                 default:
-                    console.log("warning: didn't know how to apply data correctly to: " + field);
+                    console.log("warning: didn't know how to apply data correctly to: " + field + " which is type " + currentOptions[field].type);
                     break;
             }
         };
@@ -317,7 +330,8 @@ var formfront = (function ($) {
                         $.ajax({
                             url: endpoint,
                             type: 'PUT',
-                            data: formData,
+                            data: JSON.stringify(formData),
+                            contentType: "application/json",
                             success: function (result) {
                                 console.log(result);
                                 callback();
@@ -325,10 +339,14 @@ var formfront = (function ($) {
                             error: function (response) {
                                 console.log(response);
                                 $("#form-errors").html("");
+                                $("#form-body div").removeClass("form-error");
+                                $("#field-" + error + " > .error").text("");
+
                                 for (var error in response.responseJSON) {
                                     console.log("#field-" + error);
                                     $("#field-" + error).addClass("form-error");
-                                    $("#form-errors").append(error + ": " + response.responseJSON[error]);
+                                    $("#field-" + error + " .error").text(response.responseJSON[error]);
+                                    //$("#form-errors").append(error + ": " + response.responseJSON[error]);
                                     console.log(response.responseJSON[error]);
                                 }
                             }
