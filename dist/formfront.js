@@ -111,6 +111,10 @@ var formfront = (function ($) {
     var templates = {};
 
     my.setupTemplates = function () {
+        getTemplate("_field-body.html", function (html) {
+            templates.fieldBody = html;
+            templatesLoaded = true;
+        });
         getTemplate("field-string.html", function (html) {
             templates.stringField = html;
             templatesLoaded = true;
@@ -149,35 +153,38 @@ var formfront = (function ($) {
         });
 
 
-    };
 
+    };
+        
     var templatesLoaded = false;
 
     var generateFormHtml = function (fields) {
         var fieldHtml = "";
+        var fieldBody = _.template(templates.fieldBody);
+
         for (var field in fields) {
             switch (fields[field].type) {
-                
+
                 case "string":
                     var compiled = _.template(templates.stringField);
-                    fieldHtml += compiled({field:field, data:fields[field]});
+                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
                     break;
 
                 case "text":
                     var compiled = _.template(templates.stringField);
-                    fieldHtml += compiled({field:field, data:fields[field]});
+                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
                     break;
 
                 case "boolean":
                     var compiled = _.template(templates.booleanField);
-                    fieldHtml += compiled({field:field, data:fields[field]});
+                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
                     break;
 
                 case "integer":
                     var compiled = _.template(templates.stringField);
                     //ignore primary key field
                     if (fields[field].labelLowered != config.primaryKeyName) {
-                        fieldHtml += compiled({field:field, data:fields[field]});
+                        fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
                     }
                     break;
 
@@ -185,7 +192,7 @@ var formfront = (function ($) {
                     var compiled = _.template(templates.decimalField);
                     //ignore primary key field
                     if (fields[field].labelLowered != config.primaryKeyName) {
-                        fieldHtml += compiled({field:field, data:fields[field]});
+                        fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
                     }
                     break;
 
@@ -196,7 +203,7 @@ var formfront = (function ($) {
                         optionHtml += compiledOption(fields[field].choices[i])
                     }
                     var compiled = _.template(templates.fieldFieldBody);
-                    fieldHtml += compiled({field:field, data:fields[field], options:optionHtml});
+                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field, options:optionHtml})});
                     break;
 
                 case "choice":
@@ -206,12 +213,12 @@ var formfront = (function ($) {
                         optionHtml += compiledOption(fields[field].choices[i])
                     }
                     var compiled = _.template(templates.fieldFieldBody);
-                    fieldHtml += compiled({field:field, data:fields[field], options:optionHtml});
+                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field, options:optionHtml})});
                     break;
 
                 case "date":
                     var compiled = _.template(templates.dateField);
-                    fieldHtml += compiled({field:field, data:fields[field]});
+                    fieldHtml += fieldBody({field:field,data:fields[field],fieldHtml:compiled({field:field})});
                     break;
 
                 default:
@@ -307,6 +314,19 @@ var formfront = (function ($) {
             formData[$(this).attr("name")] = $(this).is(':checked');
         });
         //deal with related fields
+
+        //deal with date and other types when saving
+        $(".ff-field").each(function(){
+            switch ($(this).data("type")){
+                case "date":
+                if ($(this).find("input").val() == ""){
+                    //need to submit blank date as null rather than empty string
+                    formData[$(this).data("field")] = null;
+                }
+                    break;
+            }
+        });
+
         return formData;
     };
 
@@ -345,7 +365,7 @@ var formfront = (function ($) {
                                 for (var error in response.responseJSON) {
                                     console.log("#field-" + error);
                                     $("#field-" + error).addClass("form-error");
-                                    $("#field-" + error + " .error").text(response.responseJSON[error]);
+                                    $("#field-" + error + " .ff-error").text(response.responseJSON[error]);
                                     //$("#form-errors").append(error + ": " + response.responseJSON[error]);
                                     console.log(response.responseJSON[error]);
                                 }
@@ -389,7 +409,7 @@ var formfront = (function ($) {
                             for (var error in response.responseJSON) {
                                 console.log("#field-" + error);
                                 $("#field-" + error).addClass("form-error");
-                                $("#field-" + error + " .error").text(response.responseJSON[error]);
+                                $("#field-" + error + " .ff-error").text(response.responseJSON[error]);
                                 //$("#form-errors").append(error + ": " + response.responseJSON[error]);
                                 console.log(response.responseJSON[error]);
                             }
