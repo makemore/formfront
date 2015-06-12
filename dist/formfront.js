@@ -55,8 +55,16 @@ var formfront = (function ($) {
     function generateListHtml(response) {
         var listRowHtml = "";
         for (var i = 0; i < response.length; i++) {
+            var actionHtml = "";
+            if (typeof(internalOptions.actions) != "undefined"){
+                //<a class='item-action' id='<%= actionId %>'><%= actionName</a>
+                var actionCompiled = _.template(templates.listRowAction);
+                for (var action in internalOptions.actions){
+                    actionHtml += actionCompiled({actionName: action, data: response[i]});
+                }
+            }
             var compiled = _.template(templates.listRow);
-            listRowHtml += compiled(response[i]);
+            listRowHtml += compiled({data: response[i], actions: actionHtml });
         }
         var listBodyCompiled = _.template(templates.listBody);
         var listBodyHtml = listBodyCompiled({listRows: listRowHtml});
@@ -64,11 +72,16 @@ var formfront = (function ($) {
     }
 
     my.list = function (options) {
+        internalOptions = options;
         getItemList(options.endpoint, function (response) {
             $("#" + options.id).html(generateListHtml(response));
 
             $(".item-edit").on("click", function (e) {
                 return options.navigate($(this).attr('id'));
+            });
+
+            $(".item-action").on("click", function(){
+                options.actions[$(this).data("action")]($(this).data("id"));
             });
 
             $("#delete-items").on("click", function (e) {
@@ -149,6 +162,10 @@ var formfront = (function ($) {
         });
         getTemplate("list-row.html", function (html) {
             templates.listRow = html;
+            templatesLoaded = true;
+        });
+        getTemplate("list-row-action.html", function (html) {
+            templates.listRowAction = html;
             templatesLoaded = true;
         });
 
