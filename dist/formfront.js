@@ -63,12 +63,12 @@ var formfront = (function ($) {
         return listBodyHtml;
     }
 
-    my.list = function (endpoint, id, callback, navigate) {
-        getItemList(endpoint, function (response) {
-            $("#" + id).html(generateListHtml(response));
+    my.list = function (options) {
+        getItemList(options.endpoint, function (response) {
+            $("#" + options.id).html(generateListHtml(response));
 
             $(".item-edit").on("click", function (e) {
-                return navigate($(this).attr('id'));
+                return options.navigate($(this).attr('id'));
             });
 
             $("#delete-items").on("click", function (e) {
@@ -80,11 +80,11 @@ var formfront = (function ($) {
 
                 for (var i = 0; i < selected.length; i++) {
                     $.ajax({
-                        url: endpoint + selected[i] + "/",
+                        url: options.endpoint + selected[i] + "/",
                         type: 'DELETE',
                         success: function (result) {
                             console.log(result);
-                            callback();
+                            options.callback();
                         }
                     });
                 }
@@ -384,6 +384,9 @@ var formfront = (function ($) {
                     var styles = ".form-error{color:red;}";
                     $("#form-styles").html(styles);
                     if (options.afterRender) { options.afterRender(); }
+
+                    console.log(itemResponse);
+
                     $("#form-submit").on("click", function (e) {
                         e.stopPropagation();
                         e.preventDefault();
