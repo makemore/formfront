@@ -148,6 +148,10 @@ var formfront = (function ($) {
             templates.dateField = html;
             templatesLoaded = true;
         });
+         getTemplate("field-file.html", function (html) {
+            templates.fileField = html;
+            templatesLoaded = true;
+        });
         getTemplate("field-field-option.html", function (html) {
             templates.fieldFieldOption = html;
             templatesLoaded = true;
@@ -280,8 +284,18 @@ var formfront = (function ($) {
                         });
                         break;
 
+                    case "file upload":
+                        var compiled = _.template(templates.fileField);
+                        fieldHtml += fieldBody({
+                            field: field,
+                            data: fields[field],
+                            fieldHtml: compiled({field: field})
+                        });
+                        break;
+
                     default:
                         console.log("warning: didn't know how to apply data correctly to: " + field + " (type = " + fields[field].type + ")");
+                        console.log()
                         fieldHtml += "<div>Not sure what this is</div>";
                         break;
                 }
