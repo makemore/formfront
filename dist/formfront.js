@@ -152,6 +152,10 @@ var formfront = (function ($) {
             templates.fileField = html;
             templatesLoaded = true;
         });
+        getTemplate("field-lookup.html", function (html) {
+            templates.lookupField = html;
+            templatesLoaded = true;
+        });
         getTemplate("field-field-option.html", function (html) {
             templates.fieldFieldOption = html;
             templatesLoaded = true;
@@ -172,8 +176,6 @@ var formfront = (function ($) {
             templates.listRowAction = html;
             templatesLoaded = true;
         });
-
-
 
     };
         
@@ -293,6 +295,17 @@ var formfront = (function ($) {
                         });
                         break;
 
+
+                    case "lookup field":
+                        var compiled = _.template(templates.lookupField);
+                        console.log(fields[field]);
+                        fieldHtml += fieldBody({
+                            field: field,
+                            data: fields[field],
+                            fieldHtml: compiled({field: field, endpoint: fields[field].endpoint})
+                        });
+                        break;
+
                     default:
                         console.log("warning: didn't know how to apply data correctly to: " + field + " (type = " + fields[field].type + ")");
                         console.log()
@@ -304,6 +317,46 @@ var formfront = (function ($) {
         var formCompiled = _.template(templates.formBody);
         var formHtml = formCompiled({formBody: fieldHtml});
         return formHtml;
+    };
+
+    var bindFormActions = function(){
+
+        $(".ff-lookup").autocomplete({
+            source: function (request, response) {
+                $.ajax({
+                    url: $(".ff-lookup").data("endpoint") + "?term=" + request.term,
+                    //data: {query: request.term},
+                    success: function (data) {
+                        var transformed = $.map(data, function (el) {
+                            return {
+                                label: el.date + " " + el.description + " " + el.amount,
+                                id: el.id
+                            };
+                        });
+                        response(transformed);
+                    },
+                    error: function () {
+                        response([]);
+                    }
+                });
+            },
+            select: function( event, ui ) {
+                //console.log(ui.item.id);
+                //console.log(event);
+                //console.log($(this).data("id", ui.item.id));
+                console.log($(this));
+                $(this).data("id", ui.item.id);
+                 console.log($(this));
+                //alert($(this).data("id"));
+                //$( "#project" ).val( ui.item.label );
+                //$( "#project-id" ).val( ui.item.value );
+                //$( "#project-description" ).html( ui.item.desc );
+                //$( "#project-icon" ).attr( "src", "images/" + ui.item.icon );
+                //alert();
+                return false;
+              }
+        });
+
     };
 
 
@@ -381,7 +434,8 @@ var formfront = (function ($) {
     };
 
 
-    var getFormData = function() {
+    var getFormData = function(callback) {
+        var filesFound = false;
         var formData = $("#form-body").serializeObject();
         //deal with checkboxes
         $('input:checkbox').each(function () {
@@ -391,17 +445,45 @@ var formfront = (function ($) {
 
         //deal with date and other types when saving
         $(".ff-field").each(function(){
+            console.log($(this).data("type"));
             switch ($(this).data("type")){
                 case "date":
                 if ($(this).find("input").val() == ""){
                     //need to submit blank date as null rather than empty string
                     formData[$(this).data("field")] = null;
                 }
+                case "lookup field":
+                    //alert("loookup");
+                    if ($(this).find("input").val() == ""){
+                    //need to submit blank date as null rather than empty string
+                    formData[$(this).data("field")] = null;
+                    } else {
+                        //alert($(".ff-lookup").data("id"));
+                        //alert($(this).data("field")); //why this not work?
+                        //alert($(".ff-lookup").data("field"));
+                        formData[$(this).data("field")] = $(".ff-lookup").data("id"); //THIS SHOULD FUCKING WORK WITH THIS
+                    }
                     break;
+                case "file upload":
+                    var that = this;
+                    if ($('.file-field').prop('files').length > 0){
+                        filesFound = true; //This stops the method calling back sync
+                        var fr = new FileReader();
+                        //console.log($('.file-field').prop('files')[0]);
+                        fr.onload = function() {
+                            formData[$(that).data("field")] = fr.result;
+                            //console.log(fr.result);
+                            //alert(fr.result);
+                            callback(formData);
+                        };
+                        fr.readAsDataURL($('.file-field').prop('files')[0]);
+                    }
             }
         });
-
-        return formData;
+        if (!filesFound){
+            callback(formData);
+        }
+        //return formData;
     };
 
     my.edit = function (options) {
@@ -410,6 +492,7 @@ var formfront = (function ($) {
         templatesReady(function () {
             getOptions(options.endpoint, function (optionsResponse) {
                 $("#" + options.id).append(generateFormHtml(optionsResponse));
+                bindFormActions();
                 getItem(options.endpoint, function (itemResponse) {
                     my.populateFormData(itemResponse);
                     var styles = ".form-error{color:red;}";
@@ -422,9 +505,8 @@ var formfront = (function ($) {
                         e.stopPropagation();
                         e.preventDefault();
 
-                        var formData = getFormData();
-
-                        $.ajax({
+                        getFormData(function(formData){
+                            $.ajax({
                             url: options.endpoint,
                             type: 'PUT',
                             data: JSON.stringify(formData),
@@ -448,6 +530,7 @@ var formfront = (function ($) {
                                 }
                             }
                         });
+                        });
                     });
                 });
             });
@@ -462,7 +545,7 @@ var formfront = (function ($) {
         templatesReady(function () {
             getOptions(options.endpoint, function (optionsResponse) {
                 $("#" + options.id).append(generateFormHtml(optionsResponse));
-
+                bindFormActions();
                 var styles = ".form-error{color:red;}";
                 $("#form-styles").html(styles);
                 if (options.afterRender) { options.afterRender(); }
@@ -471,9 +554,8 @@ var formfront = (function ($) {
                     e.preventDefault();
 
 
-                    var formData = getFormData();
-
-                    $.ajax({
+                    getFormData(function(formData){
+                        $.ajax({
                         url: options.endpoint,
                         type: 'POST',
                         data: JSON.stringify(formData),
@@ -496,6 +578,7 @@ var formfront = (function ($) {
                                 console.log(response.responseJSON[error]);
                             }
                         }
+                    });
                     });
                 });
             });
