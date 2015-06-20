@@ -320,29 +320,51 @@ var formfront = (function ($) {
     };
 
     var bindFormActions = function(){
-
         $(".ff-lookup").autocomplete({
             source: function (request, response) {
                 $.ajax({
-                    url: $(".ff-lookup").data("endpoint") + "?term=" + request.term,
+                    url: $(this.element).data("endpoint") + "?m=ajax&q=" + request.term,
+                    dataType: "json",
                     //data: {query: request.term},
                     success: function (data) {
                         var transformed = $.map(data, function (el) {
                             return {
                                 label: el.date + " " + el.description + " " + el.amount,
                                 value: el.date + " " + el.description + " " + el.amount,
-                                pk: el.pk
+                                pk: el.pk,
+                                gmailId : el.id
+
                             };
                         });
                         response(transformed);
                     },
-                    error: function () {
-                        response([]);
+                    error: function (error) {
+                        var response = JSON.parse(error.responseText);
+                        console.log(response);
+                        if (typeof(response.redirect) != "undefined"){
+                            window.location.href=response.redirect + "&next=" + window.location.hash;
+                        } else {
+                            alert("unknown error");
+                            console.log(error);
+                        }
                     }
                 });
             },
             select: function( event, ui ) {
                 $(this).attr("data-id", ui.item.pk);
+
+                //This should only happen for this field, need a way to override these methods from outside, this needs a big refactor
+                alert(ui.item.gmailId);
+                var that = this;
+                $.ajax({
+                   url: "/email/get-gmail-html?id=" + ui.item.gmailId,
+                    success: function(data){
+                        console.log(data);
+                        alert("whole html email is here, do something with it");
+                    }
+                });
+
+
                 return false;
               }
         });
