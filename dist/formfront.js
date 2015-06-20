@@ -330,7 +330,8 @@ var formfront = (function ($) {
                         var transformed = $.map(data, function (el) {
                             return {
                                 label: el.date + " " + el.description + " " + el.amount,
-                                id: el.id
+                                value: el.date + " " + el.description + " " + el.amount,
+                                pk: el.pk
                             };
                         });
                         response(transformed);
@@ -341,18 +342,7 @@ var formfront = (function ($) {
                 });
             },
             select: function( event, ui ) {
-                //console.log(ui.item.id);
-                //console.log(event);
-                //console.log($(this).data("id", ui.item.id));
-                console.log($(this));
-                $(this).data("id", ui.item.id);
-                 console.log($(this));
-                //alert($(this).data("id"));
-                //$( "#project" ).val( ui.item.label );
-                //$( "#project-id" ).val( ui.item.value );
-                //$( "#project-description" ).html( ui.item.desc );
-                //$( "#project-icon" ).attr( "src", "images/" + ui.item.icon );
-                //alert();
+                $(this).attr("data-id", ui.item.pk);
                 return false;
               }
         });
@@ -445,7 +435,7 @@ var formfront = (function ($) {
 
         //deal with date and other types when saving
         $(".ff-field").each(function(){
-            console.log($(this).data("type"));
+            console.log();
             switch ($(this).data("type")){
                 case "date":
                 if ($(this).find("input").val() == ""){
@@ -455,13 +445,10 @@ var formfront = (function ($) {
                 case "lookup field":
                     //alert("loookup");
                     if ($(this).find("input").val() == ""){
-                    //need to submit blank date as null rather than empty string
-                    formData[$(this).data("field")] = null;
+                        //need to submit blank date as null rather than empty string
+                        formData[$(this).data("field")] = null;
                     } else {
-                        //alert($(".ff-lookup").data("id"));
-                        //alert($(this).data("field")); //why this not work?
-                        //alert($(".ff-lookup").data("field"));
-                        formData[$(this).data("field")] = $(".ff-lookup").data("id"); //THIS SHOULD FUCKING WORK WITH THIS
+                        formData[$(this).data("field")] = $(this).find("input").data("id"); //THIS SHOULD FUCKING WORK WITH THIS
                     }
                     break;
                 case "file upload":
