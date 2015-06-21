@@ -473,6 +473,8 @@ var formfront = (function ($) {
                             callback(formData);
                         };
                         fr.readAsDataURL($('.file-field').prop('files')[0]);
+                    } else {
+                        formData[$(this).data("field")] = null;
                     }
             }
         });
