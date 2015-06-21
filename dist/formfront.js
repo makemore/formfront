@@ -320,39 +320,51 @@ var formfront = (function ($) {
     };
 
     var bindFormActions = function(){
-
         $(".ff-lookup").autocomplete({
             source: function (request, response) {
                 $.ajax({
-                    url: $(".ff-lookup").data("endpoint") + "?term=" + request.term,
+                    url: $(this.element).data("endpoint") + "?m=ajax&q=" + request.term,
+                    dataType: "json",
                     //data: {query: request.term},
                     success: function (data) {
                         var transformed = $.map(data, function (el) {
                             return {
                                 label: el.date + " " + el.description + " " + el.amount,
-                                id: el.id
+                                value: el.date + " " + el.description + " " + el.amount,
+                                pk: el.pk,
+                                gmailId : el.id
+
                             };
                         });
                         response(transformed);
                     },
-                    error: function () {
-                        response([]);
+                    error: function (error) {
+                        var response = JSON.parse(error.responseText);
+                        console.log(response);
+                        if (typeof(response.redirect) != "undefined"){
+                            window.location.href=response.redirect + "&next=" + window.location.hash;
+                        } else {
+                            alert("unknown error");
+                            console.log(error);
+                        }
                     }
                 });
             },
             select: function( event, ui ) {
-                //console.log(ui.item.id);
-                //console.log(event);
-                //console.log($(this).data("id", ui.item.id));
-                console.log($(this));
-                $(this).data("id", ui.item.id);
-                 console.log($(this));
-                //alert($(this).data("id"));
-                //$( "#project" ).val( ui.item.label );
-                //$( "#project-id" ).val( ui.item.value );
-                //$( "#project-description" ).html( ui.item.desc );
-                //$( "#project-icon" ).attr( "src", "images/" + ui.item.icon );
-                //alert();
+                $(this).attr("data-id", ui.item.pk);
+
+                //This should only happen for this field, need a way to override these methods from outside, this needs a big refactor
+                alert(ui.item.gmailId);
+                var that = this;
+                $.ajax({
+                   url: "/email/get-gmail-html?id=" + ui.item.gmailId,
+                    success: function(data){
+                        console.log(data);
+                        alert("whole html email is here, do something with it");
+                    }
+                });
+
+
                 return false;
               }
         });
@@ -445,7 +457,7 @@ var formfront = (function ($) {
 
         //deal with date and other types when saving
         $(".ff-field").each(function(){
-            console.log($(this).data("type"));
+            console.log();
             switch ($(this).data("type")){
                 case "date":
                 if ($(this).find("input").val() == ""){
@@ -455,13 +467,10 @@ var formfront = (function ($) {
                 case "lookup field":
                     //alert("loookup");
                     if ($(this).find("input").val() == ""){
-                    //need to submit blank date as null rather than empty string
-                    formData[$(this).data("field")] = null;
+                        //need to submit blank date as null rather than empty string
+                        formData[$(this).data("field")] = null;
                     } else {
-                        //alert($(".ff-lookup").data("id"));
-                        //alert($(this).data("field")); //why this not work?
-                        //alert($(".ff-lookup").data("field"));
-                        formData[$(this).data("field")] = $(".ff-lookup").data("id"); //THIS SHOULD FUCKING WORK WITH THIS
+                        formData[$(this).data("field")] = $(this).find("input").data("id"); //THIS SHOULD FUCKING WORK WITH THIS
                     }
                     break;
                 case "file upload":
