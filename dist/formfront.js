@@ -64,6 +64,9 @@ var formfront = (function ($) {
                 }
             }
             var compiled = _.template(templates.listRow);
+            if (typeof(internalOptions.listDisplay) != "undefined"){
+                response[i].name = response[i][internalOptions.listDisplay[0]]; //this should work for more than 1 column
+            }
             listRowHtml += compiled({data: response[i], actions: actionHtml});
         }
         var listBodyCompiled = _.template(templates.listBody);
