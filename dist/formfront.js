@@ -3,19 +3,19 @@
 var formfront = (function ($) {
 
     $.fn.serializeObject = function () {
-    var o = {};
-    var a = this.serializeArray();
-    $.each(a, function () {
-        if (o[this.name] !== undefined) {
-            if (!o[this.name].push) {
-                o[this.name] = [o[this.name]];
+        var o = {};
+        var a = this.serializeArray();
+        $.each(a, function () {
+            if (o[this.name] !== undefined) {
+                if (!o[this.name].push) {
+                    o[this.name] = [o[this.name]];
+                }
+                o[this.name].push(this.value || '');
+            } else {
+                o[this.name] = this.value || '';
             }
-            o[this.name].push(this.value || '');
-        } else {
-            o[this.name] = this.value || '';
-        }
-    });
-    return o;
+        });
+        return o;
     };
 
 
@@ -44,7 +44,7 @@ var formfront = (function ($) {
             type: 'OPTIONS',
             success: function (response) {
                 currentOptions = response.actions[Object.keys(response.actions)[0]];
-                for (var field in currentOptions){
+                for (var field in currentOptions) {
                     currentOptions[field].labelLowered = currentOptions[field].label.toLowerCase(); //this could just be = field; ?
                 }
                 callback(currentOptions);
@@ -56,15 +56,15 @@ var formfront = (function ($) {
         var listRowHtml = "";
         for (var i = 0; i < response.length; i++) {
             var actionHtml = "";
-            if (typeof(internalOptions.actions) != "undefined"){
+            if (typeof(internalOptions.actions) != "undefined") {
                 //<a class='item-action' id='<%= actionId %>'><%= actionName</a>
                 var actionCompiled = _.template(templates.listRowAction);
-                for (var action in internalOptions.actions){
+                for (var action in internalOptions.actions) {
                     actionHtml += actionCompiled({actionName: action, data: response[i]});
                 }
             }
             var compiled = _.template(templates.listRow);
-            listRowHtml += compiled({data: response[i], actions: actionHtml });
+            listRowHtml += compiled({data: response[i], actions: actionHtml});
         }
         var listBodyCompiled = _.template(templates.listBody);
         var listBodyHtml = listBodyCompiled({listRows: listRowHtml});
@@ -80,7 +80,7 @@ var formfront = (function ($) {
                 return options.navigate($(this).attr('id'));
             });
 
-            $(".item-action").on("click", function(){
+            $(".item-action").on("click", function () {
                 options.actions[$(this).data("action")]($(this).data("id"));
             });
 
@@ -132,7 +132,7 @@ var formfront = (function ($) {
             templates.stringField = html;
             templatesLoaded = true;
         });
-         getTemplate("field-decimal.html", function (html) {
+        getTemplate("field-decimal.html", function (html) {
             templates.decimalField = html;
             templatesLoaded = true;
         });
@@ -148,7 +148,7 @@ var formfront = (function ($) {
             templates.dateField = html;
             templatesLoaded = true;
         });
-         getTemplate("field-file.html", function (html) {
+        getTemplate("field-file.html", function (html) {
             templates.fileField = html;
             templatesLoaded = true;
         });
@@ -178,7 +178,7 @@ var formfront = (function ($) {
         });
 
     };
-        
+
     var templatesLoaded = false;
 
     var generateFormHtml = function (fields) {
@@ -186,7 +186,7 @@ var formfront = (function ($) {
         var fieldBody = _.template(templates.fieldBody);
 
         //should be a better way of doing this?
-        if (typeof(internalOptions.ignore) == "undefined"){
+        if (typeof(internalOptions.ignore) == "undefined") {
             internalOptions.ignore = [];
         }
         for (var field in fields) {
@@ -250,7 +250,7 @@ var formfront = (function ($) {
                         var optionHtml = "";
 
                         //added to have default option of nothing
-                        optionHtml += compiledOption({value:null, displayName:"Select " + field});
+                        optionHtml += compiledOption({value: null, displayName: "Select " + field});
 
                         for (var i = 0; i < fields[field].choices.length; i++) {
                             optionHtml += compiledOption(fields[field].choices[i])
@@ -319,56 +319,40 @@ var formfront = (function ($) {
         return formHtml;
     };
 
-    var bindFormActions = function(){
-        $(".ff-lookup").autocomplete({
-            source: function (request, response) {
-                $.ajax({
-                    url: $(this.element).data("endpoint") + "?m=ajax&q=" + request.term,
-                    dataType: "json",
-                    //data: {query: request.term},
-                    success: function (data) {
-                        var transformed = $.map(data, function (el) {
-                            return {
-                                label: el.date + " " + el.description + " " + el.amount,
-                                value: el.date + " " + el.description + " " + el.amount,
-                                pk: el.pk,
-                                gmailId : el.id
+    var bindFormActions = function () {
+        $(".ff-lookup").each(function (index) {
 
-                            };
+
+            //Overrides mean that standard actions don't get bound to fields (this means you can extend the form for custom cases
+            if (internalOptions.override.indexOf($(this).data("field")) == -1 ) {
+                $(this).autocomplete({
+                    source: function (request, response) {
+                        $.ajax({
+                            url: $(this.element).data("endpoint") + "?m=ajax&q=" + request.term,
+                            dataType: "json",
+                            //data: {query: request.term},
+                            success: function (data) {
+                                var transformed = $.map(data, function (el) {
+                                    return {
+                                        label: el.date + " " + el.description + " " + el.amount, //this needs to be a generic way of working
+                                        value: el.date + " " + el.description + " " + el.amount,
+                                        pk: el.pk
+                                    };
+                                });
+                                response(transformed);
+                            },
+                            error: function (error) {
+                                alert("error");
+                            }
                         });
-                        response(transformed);
                     },
-                    error: function (error) {
-                        var response = JSON.parse(error.responseText);
-                        console.log(response);
-                        if (typeof(response.redirect) != "undefined"){
-                            window.location.href=response.redirect + "&next=" + window.location.hash;
-                        } else {
-                            alert("unknown error");
-                            console.log(error);
-                        }
+                    select: function (event, ui) {
+                        $(this).attr("data-id", ui.item.pk);
+                        return false;
                     }
                 });
-            },
-            select: function( event, ui ) {
-                $(this).attr("data-id", ui.item.pk);
-
-                //This should only happen for this field, need a way to override these methods from outside, this needs a big refactor
-                alert(ui.item.gmailId);
-                var that = this;
-                $.ajax({
-                   url: "/email/get-gmail-html?id=" + ui.item.gmailId,
-                    success: function(data){
-                        console.log(data);
-                        alert("whole html email is here, do something with it");
-                    }
-                });
-
-
-                return false;
-              }
+            }
         });
-
     };
 
 
@@ -446,7 +430,7 @@ var formfront = (function ($) {
     };
 
 
-    var getFormData = function(callback) {
+    var getFormData = function (callback) {
         var filesFound = false;
         var formData = $("#form-body").serializeObject();
         //deal with checkboxes
@@ -456,17 +440,17 @@ var formfront = (function ($) {
         //deal with related fields
 
         //deal with date and other types when saving
-        $(".ff-field").each(function(){
+        $(".ff-field").each(function () {
             console.log();
-            switch ($(this).data("type")){
+            switch ($(this).data("type")) {
                 case "date":
-                if ($(this).find("input").val() == ""){
-                    //need to submit blank date as null rather than empty string
-                    formData[$(this).data("field")] = null;
-                }
+                    if ($(this).find("input").val() == "") {
+                        //need to submit blank date as null rather than empty string
+                        formData[$(this).data("field")] = null;
+                    }
                 case "lookup field":
                     //alert("loookup");
-                    if ($(this).find("input").val() == ""){
+                    if ($(this).find("input").val() == "") {
                         //need to submit blank date as null rather than empty string
                         formData[$(this).data("field")] = null;
                     } else {
@@ -475,11 +459,11 @@ var formfront = (function ($) {
                     break;
                 case "file upload":
                     var that = this;
-                    if ($('.file-field').prop('files').length > 0){
+                    if ($('.file-field').prop('files').length > 0) {
                         filesFound = true; //This stops the method calling back sync
                         var fr = new FileReader();
                         //console.log($('.file-field').prop('files')[0]);
-                        fr.onload = function() {
+                        fr.onload = function () {
                             formData[$(that).data("field")] = fr.result;
                             //console.log(fr.result);
                             //alert(fr.result);
@@ -489,7 +473,7 @@ var formfront = (function ($) {
                     }
             }
         });
-        if (!filesFound){
+        if (!filesFound) {
             callback(formData);
         }
         //return formData;
@@ -497,7 +481,9 @@ var formfront = (function ($) {
 
     my.edit = function (options) {
         internalOptions = options;
-        if (options.beforeRender) { options.beforeRender(); }
+        if (options.beforeRender) {
+            options.beforeRender();
+        }
         templatesReady(function () {
             getOptions(options.endpoint, function (optionsResponse) {
                 $("#" + options.id).append(generateFormHtml(optionsResponse));
@@ -506,7 +492,9 @@ var formfront = (function ($) {
                     my.populateFormData(itemResponse);
                     var styles = ".form-error{color:red;}";
                     $("#form-styles").html(styles);
-                    if (options.afterRender) { options.afterRender(); }
+                    if (options.afterRender) {
+                        options.afterRender();
+                    }
 
                     console.log(itemResponse);
 
@@ -514,10 +502,66 @@ var formfront = (function ($) {
                         e.stopPropagation();
                         e.preventDefault();
 
-                        getFormData(function(formData){
+                        getFormData(function (formData) {
                             $.ajax({
+                                url: options.endpoint,
+                                type: 'PUT',
+                                data: JSON.stringify(formData),
+                                contentType: "application/json",
+                                success: function (result) {
+                                    console.log(result);
+                                    options.success();
+                                },
+                                error: function (response) {
+                                    console.log(response);
+                                    $("#form-errors").html("");
+                                    $("#form-body div").removeClass("form-error");
+                                    $("#field-" + error + " > .error").text("");
+
+                                    for (var error in response.responseJSON) {
+                                        console.log("#field-" + error);
+                                        $("#field-" + error).addClass("form-error");
+                                        $("#field-" + error + " .ff-error").text(response.responseJSON[error]);
+                                        //$("#form-errors").append(error + ": " + response.responseJSON[error]);
+                                        console.log(response.responseJSON[error]);
+                                    }
+                                }
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    };
+
+    var internalOptions = {};
+
+    my.create = function (options) { //endpoint, id, callback) {
+        internalOptions = options;
+        if (options.beforeRender) {
+            options.beforeRender();
+        }
+        templatesReady(function () {
+            getOptions(options.endpoint, function (optionsResponse) {
+                $("#" + options.id).append(generateFormHtml(optionsResponse));
+                bindFormActions();
+                if (typeof(internalOptions.bindFormActions) != "undefined"){
+                   internalOptions.bindFormActions();
+                }
+                var styles = ".form-error{color:red;}";
+                $("#form-styles").html(styles);
+                if (options.afterRender) {
+                    options.afterRender();
+                }
+                $("#form-submit").on("click", function (e) {
+                    e.stopPropagation();
+                    e.preventDefault();
+
+
+                    getFormData(function (formData) {
+                        $.ajax({
                             url: options.endpoint,
-                            type: 'PUT',
+                            type: 'POST',
                             data: JSON.stringify(formData),
                             contentType: "application/json",
                             success: function (result) {
@@ -539,55 +583,6 @@ var formfront = (function ($) {
                                 }
                             }
                         });
-                        });
-                    });
-                });
-            });
-        });
-    };
-
-    var internalOptions = {};
-
-    my.create = function (options){ //endpoint, id, callback) {
-        internalOptions = options;
-        if (options.beforeRender) { options.beforeRender(); }
-        templatesReady(function () {
-            getOptions(options.endpoint, function (optionsResponse) {
-                $("#" + options.id).append(generateFormHtml(optionsResponse));
-                bindFormActions();
-                var styles = ".form-error{color:red;}";
-                $("#form-styles").html(styles);
-                if (options.afterRender) { options.afterRender(); }
-                $("#form-submit").on("click", function (e) {
-                    e.stopPropagation();
-                    e.preventDefault();
-
-
-                    getFormData(function(formData){
-                        $.ajax({
-                        url: options.endpoint,
-                        type: 'POST',
-                        data: JSON.stringify(formData),
-                        contentType: "application/json",
-                        success: function (result) {
-                            console.log(result);
-                            options.success();
-                        },
-                        error: function (response) {
-                            console.log(response);
-                            $("#form-errors").html("");
-                            $("#form-body div").removeClass("form-error");
-                            $("#field-" + error + " > .error").text("");
-
-                            for (var error in response.responseJSON) {
-                                console.log("#field-" + error);
-                                $("#field-" + error).addClass("form-error");
-                                $("#field-" + error + " .ff-error").text(response.responseJSON[error]);
-                                //$("#form-errors").append(error + ": " + response.responseJSON[error]);
-                                console.log(response.responseJSON[error]);
-                            }
-                        }
-                    });
                     });
                 });
             });
