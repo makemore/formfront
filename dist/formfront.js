@@ -336,7 +336,8 @@ var formfront = (function ($) {
                                     return {
                                         label: el.date + " " + el.description + " " + el.amount, //this needs to be a generic way of working
                                         value: el.date + " " + el.description + " " + el.amount,
-                                        pk: el.pk
+                                        pk: el.pk,
+                                        original: el //This means that we still have access the non transformed data for sending back up to the server.
                                     };
                                 });
                                 response(transformed);
@@ -347,7 +348,7 @@ var formfront = (function ($) {
                         });
                     },
                     select: function (event, ui) {
-                        $(this).attr("data-id", ui.item.pk);
+                        $(this).data("obj", ui.item.original); //store the non transformed on the field.
                         return false;
                     }
                 });
@@ -449,12 +450,11 @@ var formfront = (function ($) {
                         formData[$(this).data("field")] = null;
                     }
                 case "lookup field":
-                    //alert("loookup");
                     if ($(this).find("input").val() == "") {
                         //need to submit blank date as null rather than empty string
                         formData[$(this).data("field")] = null;
                     } else {
-                        formData[$(this).data("field")] = $(this).find("input").data("id"); //THIS SHOULD FUCKING WORK WITH THIS
+                        formData[$(this).data("field")] = $(this).find("input").data("obj"); //Need to store whole object for sending back into api
                     }
                     break;
                 case "file upload":
