@@ -586,6 +586,9 @@ var formfront = (function ($) {
                                     //$("#form-errors").append(error + ": " + response.responseJSON[error]);
                                     console.log(response.responseJSON[error]);
                                 }
+                                if (typeof(response.responseJSON.detail) != "undefined"){
+                                    alert(response.responseJSON.detail);
+                                }
                             }
                         });
                     });
