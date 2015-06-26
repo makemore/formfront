@@ -64,7 +64,7 @@ var formfront = (function ($) {
                 }
             }
             var compiled = _.template(templates.listRow);
-            if (typeof(internalOptions.listDisplay) != "undefined"){
+            if (typeof(internalOptions.listDisplay) != "undefined") {
                 response[i].name = response[i][internalOptions.listDisplay[0]]; //this should work for more than 1 column
             }
             listRowHtml += compiled({data: response[i], actions: actionHtml});
@@ -177,6 +177,10 @@ var formfront = (function ($) {
         });
         getTemplate("list-row-action.html", function (html) {
             templates.listRowAction = html;
+            templatesLoaded = true;
+        });
+        getTemplate("field-blank.html", function (html) {
+            templates.blankField = html;
             templatesLoaded = true;
         });
 
@@ -309,6 +313,15 @@ var formfront = (function ($) {
                         });
                         break;
 
+                    case "blank":
+                        var compiled = _.template(templates.blankField);
+                        fieldHtml += fieldBody({
+                            field: field,
+                            data: fields[field],
+                            fieldHtml: compiled({field: field})
+                        });
+                        break;
+
                     default:
                         console.log("warning: didn't know how to apply data correctly to: " + field + " (type = " + fields[field].type + ")");
                         console.log()
@@ -324,10 +337,8 @@ var formfront = (function ($) {
 
     var bindFormActions = function () {
         $(".ff-lookup").each(function (index) {
-
-
             //Overrides mean that standard actions don't get bound to fields (this means you can extend the form for custom cases
-            if (internalOptions.override.indexOf($(this).data("field")) == -1 ) {
+            if (typeof(internalOptions.override) != "undefined" && internalOptions.override.indexOf($(this).data("field")) == -1) {
                 $(this).autocomplete({
                     source: function (request, response) {
                         $.ajax({
@@ -492,15 +503,21 @@ var formfront = (function ($) {
         templatesReady(function () {
             getOptions(options.endpoint, function (optionsResponse) {
                 $("#" + options.id).append(generateFormHtml(optionsResponse));
-                bindFormActions();
                 getItem(options.endpoint, function (itemResponse) {
+
+                    //after render (but with response data)
+                    if (typeof(options.afterRender) != "undefined") {
+                        options.afterRender(itemResponse);
+                    }
+
+                    bindFormActions();
+                    if (typeof(internalOptions.bindFormActions) != "undefined") {
+                        internalOptions.bindFormActions(itemResponse);
+                    }
+
                     my.populateFormData(itemResponse);
                     var styles = ".form-error{color:red;}";
                     $("#form-styles").html(styles);
-                    if (options.afterRender) {
-                        options.afterRender();
-                    }
-
                     console.log(itemResponse);
 
                     $("#form-submit").on("click", function (e) {
@@ -550,8 +567,8 @@ var formfront = (function ($) {
             getOptions(options.endpoint, function (optionsResponse) {
                 $("#" + options.id).append(generateFormHtml(optionsResponse));
                 bindFormActions();
-                if (typeof(internalOptions.bindFormActions) != "undefined"){
-                   internalOptions.bindFormActions();
+                if (typeof(internalOptions.bindFormActions) != "undefined") {
+                    internalOptions.bindFormActions();
                 }
                 var styles = ".form-error{color:red;}";
                 $("#form-styles").html(styles);
@@ -586,7 +603,7 @@ var formfront = (function ($) {
                                     //$("#form-errors").append(error + ": " + response.responseJSON[error]);
                                     console.log(response.responseJSON[error]);
                                 }
-                                if (typeof(response.responseJSON.detail) != "undefined"){
+                                if (typeof(response.responseJSON.detail) != "undefined") {
                                     alert(response.responseJSON.detail);
                                 }
                             }
