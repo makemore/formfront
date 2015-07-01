@@ -109,10 +109,12 @@ var formfront = (function ($) {
     };
 
     var getTemplate = function (filename, callback) {
-
         var jsFileLocation = $('script[src*=formfront]').attr('src');  // the js file path
         jsFileLocation = jsFileLocation.replace('formfront.js', '');
-        //alert(jsFileLocation);
+
+        if (typeof(config.template) == "undefined"){
+            alert("formfront config not set");
+        }
 
         $.ajax({
             url: jsFileLocation + "templates/" + config.template + "/" + filename,
@@ -196,11 +198,11 @@ var formfront = (function ($) {
         if (typeof(internalOptions.ignore) == "undefined") {
             internalOptions.ignore = [];
         }
+
         for (var field in fields) {
             //tests to see if current field is in ignore list
             if (internalOptions.ignore.indexOf(field) == -1) {
                 switch (fields[field].type) {
-
                     case "string":
                         var compiled = _.template(templates.stringField);
                         fieldHtml += fieldBody({
@@ -252,8 +254,12 @@ var formfront = (function ($) {
                         }
                         break;
 
+
+
                     case "field": //This should actually be relatedField or something like that.
-                        var compiledOption = _.template(templates.fieldFieldOption);
+                       console.log("doing nothing, as we should only respond to things that have bothered to be specific");
+
+                       /* var compiledOption = _.template(templates.fieldFieldOption);
                         var optionHtml = "";
 
                         //added to have default option of nothing
@@ -262,12 +268,13 @@ var formfront = (function ($) {
                         for (var i = 0; i < fields[field].choices.length; i++) {
                             optionHtml += compiledOption(fields[field].choices[i])
                         }
+
                         var compiled = _.template(templates.fieldFieldBody);
                         fieldHtml += fieldBody({
                             field: field,
                             data: fields[field],
                             fieldHtml: compiled({field: field, options: optionHtml})
-                        });
+                        });*/
                         break;
 
                     case "choice":
@@ -438,8 +445,8 @@ var formfront = (function ($) {
         }
         var templateInterval = setInterval(function () {
             if (templatesLoaded) {
-                clearInterval(templateInterval);
                 callback();
+                clearInterval(templateInterval);
             }
         }, 100);
     };
@@ -558,7 +565,7 @@ var formfront = (function ($) {
 
     var internalOptions = {};
 
-    my.create = function (options) { //endpoint, id, callback) {
+    my.create = function (options) {
         internalOptions = options;
         if (options.beforeRender) {
             options.beforeRender();
@@ -572,7 +579,7 @@ var formfront = (function ($) {
                 }
                 var styles = ".form-error{color:red;}";
                 $("#form-styles").html(styles);
-                if (options.afterRender) {
+                if (typeof(options.afterRender) != "undefined") {
                     options.afterRender();
                 }
                 $("#form-submit").on("click", function (e) {
@@ -588,7 +595,7 @@ var formfront = (function ($) {
                             contentType: "application/json",
                             success: function (result) {
                                 console.log(result);
-                                options.success();
+                                options.success(result);
                             },
                             error: function (response) {
                                 console.log(response);
