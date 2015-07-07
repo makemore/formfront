@@ -109,6 +109,7 @@ var formfront = (function ($) {
     };
 
     var getTemplate = function (filename, callback) {
+        //OF COURSE THIS BREAKS IN MINIFICATION!
         var jsFileLocation = $('script[src*=formfront]').attr('src');  // the js file path
         jsFileLocation = jsFileLocation.replace('formfront.js', '');
 
