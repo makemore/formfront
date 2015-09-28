@@ -77,6 +77,7 @@ var formfront = (function ($) {
     my.list = function (options) {
         internalOptions = options;
         getItemList(options.endpoint, function (response) {
+            console.log(response);
             $("#" + options.id).html(generateListHtml(response));
 
             $(".item-edit").on("click", function (e) {
@@ -109,13 +110,10 @@ var formfront = (function ($) {
     };
 
     var getTemplate = function (filename, callback) {
-        //OF COURSE THIS BREAKS IN MINIFICATION!
+
         var jsFileLocation = $('script[src*=formfront]').attr('src');  // the js file path
         jsFileLocation = jsFileLocation.replace('formfront.js', '');
-
-        if (typeof(config.template) == "undefined"){
-            alert("formfront config not set");
-        }
+        //alert(jsFileLocation);
 
         $.ajax({
             url: jsFileLocation + "templates/" + config.template + "/" + filename,
@@ -194,16 +192,16 @@ var formfront = (function ($) {
     var generateFormHtml = function (fields) {
         var fieldHtml = "";
         var fieldBody = _.template(templates.fieldBody);
-
+        console.log("fields", fields);
         //should be a better way of doing this?
         if (typeof(internalOptions.ignore) == "undefined") {
             internalOptions.ignore = [];
         }
-
         for (var field in fields) {
             //tests to see if current field is in ignore list
-            if (internalOptions.ignore.indexOf(field) == -1) {
+            if (internalOptions.ignore.indexOf(fields[field].labelLowered) == -1) {
                 switch (fields[field].type) {
+
                     case "string":
                         var compiled = _.template(templates.stringField);
                         fieldHtml += fieldBody({
@@ -255,12 +253,9 @@ var formfront = (function ($) {
                         }
                         break;
 
-
-
                     case "field": //This should actually be relatedField or something like that.
-                       console.log("doing nothing, as we should only respond to things that have bothered to be specific");
-
-                       /* var compiledOption = _.template(templates.fieldFieldOption);
+                        console.log(fields[field]);
+                        var compiledOption = _.template(templates.fieldFieldOption);
                         var optionHtml = "";
 
                         //added to have default option of nothing
@@ -269,13 +264,12 @@ var formfront = (function ($) {
                         for (var i = 0; i < fields[field].choices.length; i++) {
                             optionHtml += compiledOption(fields[field].choices[i])
                         }
-
                         var compiled = _.template(templates.fieldFieldBody);
                         fieldHtml += fieldBody({
                             field: field,
                             data: fields[field],
                             fieldHtml: compiled({field: field, options: optionHtml})
-                        });*/
+                        });
                         break;
 
                     case "choice":
@@ -446,8 +440,8 @@ var formfront = (function ($) {
         }
         var templateInterval = setInterval(function () {
             if (templatesLoaded) {
-                callback();
                 clearInterval(templateInterval);
+                callback();
             }
         }, 100);
     };
@@ -566,7 +560,7 @@ var formfront = (function ($) {
 
     var internalOptions = {};
 
-    my.create = function (options) {
+    my.create = function (options) { //endpoint, id, callback) {
         internalOptions = options;
         if (options.beforeRender) {
             options.beforeRender();
@@ -580,7 +574,7 @@ var formfront = (function ($) {
                 }
                 var styles = ".form-error{color:red;}";
                 $("#form-styles").html(styles);
-                if (typeof(options.afterRender) != "undefined") {
+                if (options.afterRender) {
                     options.afterRender();
                 }
                 $("#form-submit").on("click", function (e) {
@@ -596,7 +590,7 @@ var formfront = (function ($) {
                             contentType: "application/json",
                             success: function (result) {
                                 console.log(result);
-                                options.success(result);
+                                options.success();
                             },
                             error: function (response) {
                                 console.log(response);
